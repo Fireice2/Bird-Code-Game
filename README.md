@@ -17,9 +17,3 @@ Abstract: Many of you already heard of the brick breaker game. It has a small ba
 If you missed the chance for the ball to bounce, then the game is over. This project is basically for beginners who are looking for a minor project. This simple project will surely help you with your first-year project or also as an implementation for fun purposes. 
 
 Technologies Required: Java, Game development, JFrame, JPanel, and Java Graphics Kit.
-
-
-Add
-public void actionPerformed(ActionEvent e) {
-       timer.start();
-For update function
