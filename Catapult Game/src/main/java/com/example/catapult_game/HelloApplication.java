@@ -14,6 +14,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.scene.transform.Rotate;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -24,7 +25,7 @@ Cameron Stone
 
 P.1
 
-Version 1
+Version 2
 */
 
 public class HelloApplication extends Application {
@@ -41,7 +42,7 @@ public class HelloApplication extends Application {
         }
     }
     final ArrayList<Brick> bricks = new ArrayList<>();
-    double brickHeight = 50, brickWidth = 100;
+    double brickHeight = 25, brickWidth = 50, brickGap = 10;
 
     // Window Settings
     final String Title = "Catapult Game";
@@ -50,8 +51,7 @@ public class HelloApplication extends Application {
     // Win & Lose Variables
     final String winString = "You Win!", loseString = "You Lose!";
     static boolean win = false, lose = false;
-    final Color winBoxColor = Color.GREEN;
-    final Color loseBoxColor = Color.RED;
+    final Color winBoxColor = Color.GREEN, loseBoxColor = Color.RED;
     double winAmount, winBoxX, winBoxY, winBoxWidth = 500, winBoxHeight = 240;
 
     // Score Variables
@@ -63,11 +63,11 @@ public class HelloApplication extends Application {
     static boolean mouseDown = false;
 
     // Catapult Variables
-    double catapultY, catapultX, catapultHeight = 150, catapultWidth = 10;
+    double catapultY, catapultX, catapultHeight = 75, catapultWidth = 10;
 
     // Ball Variables
     static double circleX, circleY, circleXDirection, circleYDirection, circleRadius = 10, circleOpacity = 1, gravity = 0.25;
-    static boolean temp = true;
+    static boolean temp = true, hit = false;
 
     // Level Variables
     int[][] currentLevel;
@@ -103,6 +103,39 @@ public class HelloApplication extends Application {
             {0,0,0,0,0,0},
              {0,1,0,0,0,1}
     };
+    final int[][] level5 = {
+            {1,0,0,0,0,0,0,0,0},
+             {1,0,0,0,0,0,0,0,0},
+            {1,0,1,0,0,0,0,0,0},
+             {1,0,1,0,0,0,0,0,0},
+            {1,0,1,0,1,0,0,0,0},
+             {1,0,1,0,1,0,0,0,0},
+            {1,0,1,0,1,0,1,0,0},
+             {1,0,1,0,1,0,1,0,0},
+            {1,0,1,0,1,0,1,0,1},
+             {1,0,1,0,1,0,1,0,1}
+    };
+    final int[][] level6 = {
+            {0,0,0,0,1,1,1,0,0},
+             {0,0,0,0,1,1,0,0,0},
+            {0,0,0,0,1,1,1,0,0},
+             {0,0,0,0,1,1,0,0,0},
+            {0,0,0,0,1,1,1,0,0},
+             {0,0,0,0,1,1,0,0,0},
+            {0,0,0,0,1,1,1,0,0},
+             {0,0,0,0,1,1,0,0,0},
+            {0,0,0,0,1,1,1,0,0},
+             {0,0,0,0,1,1,0,0,0},
+            {0,0,0,0,1,1,1,0,0},
+             {0,0,0,0,1,1,0,0,0},
+            {0,0,0,0,1,1,1,0,0},
+             {0,0,0,0,1,1,0,0,0},
+            {0,0,0,0,1,1,1,0,0},
+             {0,0,0,0,1,1,0,0,0},
+            {0,0,0,0,1,1,1,0,0},
+             {0,0,0,0,1,1,0,0,0},
+            {0,0,0,0,1,1,1,0,0}
+    };
 
     @Override
     public void start(Stage stage) {
@@ -118,6 +151,12 @@ public class HelloApplication extends Application {
 
         // Catapult Setup
         Rectangle catapult = getCatapult();
+
+        Rotate rotate = new Rotate();
+        rotate.setPivotX(catapult.getWidth()/2);
+        rotate.setPivotY(catapult.getHeight());
+        catapult.getTransforms().add(rotate);
+
         root.getChildren().add(catapult);
 
         // Ball Setup
@@ -127,7 +166,7 @@ public class HelloApplication extends Application {
         // Win & Lose box Setup
         Rectangle winBox = createRectangle(winBoxX, winBoxY, winBoxWidth, winBoxHeight, winBoxColor);
         TextField winText = createTextField(winBoxX, winBoxY, winBoxWidth, winBoxHeight, "");
-        winText.setOpacity(0);
+        winText.setVisible(false);
         winText.setStyle("-fx-font-size:30px;-fx-alignment:center;-fx-background-color:transparent;");
         winText.setEditable(false);
 
@@ -154,6 +193,23 @@ public class HelloApplication extends Application {
         root.setOnMouseMoved(event -> {
             mouseX = event.getX();
             mouseY = event.getY();
+
+            double pivotX = catapult.getLayoutX() + catapultWidth / 2;
+            double pivotY = catapult.getLayoutY() + catapultHeight;
+
+            double angle = Math.toDegrees(
+                    Math.atan2(mouseY - pivotY, mouseX - pivotX)
+            );
+
+            rotate.setAngle(angle + 90);
+        });
+
+        root.setOnMousePressed(e -> {
+            if(e.getButton() == MouseButton.PRIMARY)
+            {
+                mouseDown = true;
+                hit = false;
+            }
         });
 
         // Starts update loop
@@ -172,19 +228,17 @@ public class HelloApplication extends Application {
     }
 
     // Update loop
-    Timeline createTimeline(Duration interval, Circle circle, TextField scoreText, TextField ballText,
-                            Rectangle winBox, TextField winText, Button nextButton, Button resetButton) {
+    Timeline createTimeline(Duration interval, Circle circle, TextField scoreText, TextField ballText, Rectangle winBox, TextField winText, Button nextButton, Button resetButton) {
         KeyFrame keyFrame = new KeyFrame(interval, _ -> {
             updateBricks();
             updateCircle(circle);
             updateUI(scoreText, ballText, circle, winBox, winText, nextButton, resetButton);
+            if(!mouseDown && !hit)
+            {
+                circle.setCenterX(20);
+                circle.setCenterY(applicationY-20);
 
-            if(mouseX < (double) applicationX /5 && mouseY > (double) (2 * applicationY) /4 && !mouseDown && !win && !lose) {
-                circle.setCenterX(mouseX);
-                circle.setCenterY(mouseY);
-                circleX = mouseX;
-                circleY = mouseY;
-                circleOpacity = 1;
+                resetCircle();
             }
         });
         Timeline timeline = new Timeline(keyFrame);
@@ -216,8 +270,9 @@ public class HelloApplication extends Application {
     void updateCircle(Circle circle) {
         if (!mouseDown) return;
         if (temp) {
-            circleXDirection = (catapultX - circleX)/10;
-            circleYDirection = (catapultY - circleY)/10;
+            circleXDirection = (mouseX - circleX) / 15;
+            circleYDirection = (mouseY - circleY) / 15;
+            
             temp = false;
             currentBalls--;
         }
@@ -227,7 +282,7 @@ public class HelloApplication extends Application {
         circle.setCenterX(circleX);
         circle.setCenterY(circleY);
 
-        if(circleY >= applicationY || circleX >= applicationX) resetCircle();
+        if(circleY >= applicationY || circleY <= 0 || circleX >= applicationX || circleY <= 0) resetCircle();
 
         for(Brick brick : bricks) {
             if(!brick.active) continue;
@@ -235,6 +290,7 @@ public class HelloApplication extends Application {
                 brick.active = false;
                 brick.rect.setOpacity(0);
                 score += givenScore;
+                hit = true;
                 resetCircle();
             }
         }
@@ -249,8 +305,8 @@ public class HelloApplication extends Application {
         if(lose) winBox.setFill(loseBoxColor);
         if(win) winBox.setFill(winBoxColor);
         if(win || lose) {
-            winBox.setOpacity(0.8);
-            winText.setOpacity(1);
+            winBox.setVisible(true);
+            winText.setVisible(true);
             winText.setText(win ? winString : loseString);
             if(win) nextButton.setVisible(true);
             resetButton.setVisible(true);
@@ -271,9 +327,11 @@ public class HelloApplication extends Application {
 
     // Creates catapult
     Rectangle getCatapult() {
-        Rectangle rect = new Rectangle((double) applicationX /6, applicationY-catapultHeight, catapultWidth, catapultHeight);
-        catapultX = rect.getX();
-        catapultY = rect.getY();
+        Rectangle rect = new Rectangle(catapultWidth, catapultHeight);
+        rect.relocate( 0, applicationY - catapultHeight);
+
+        catapultX = rect.getLayoutX();
+        catapultY = rect.getLayoutY();
         return rect;
     }
 
@@ -288,14 +346,14 @@ public class HelloApplication extends Application {
     // Creates inputted circles (ball)
     static Circle getCircle() {
         Circle circle = new Circle(0,0,circleRadius);
-        circle.setOnMousePressed(e -> { if(e.getButton() == MouseButton.PRIMARY) mouseDown = true; });
         return circle;
     }
 
     // Resets circle position & velocity when collided with something
     void resetCircle() {
-        circleXDirection = circleYDirection = circleX = circleY = 0;
-        circleOpacity = 0;
+        circleXDirection = circleYDirection = 0;
+        circleX = 5;
+        circleY = applicationY-5;
         temp = true;
         mouseDown = false;
         if(score == winAmount) win = true;
@@ -310,14 +368,14 @@ public class HelloApplication extends Application {
         win = false; lose = false; score = 0;
 
         // Hide win & reset UI
-        winBox.setOpacity(0); winText.setOpacity(0);
+        winBox.setVisible(false); winText.setVisible(false);
         nextButton.setVisible(false);
         resetButton.setVisible(false);
 
         // Select a level
         int[][] level;
         if(random) {
-            int[][][] levels = {level1, level2, level3, level4};
+            int[][][] levels = {level5, level6};
             level = levels[new Random().nextInt(levels.length)];
             currentLevel = level;
         } else {
@@ -331,8 +389,8 @@ public class HelloApplication extends Application {
             for(int col=0; col<level[row].length; col++){
                 if(level[row][col]==1){
                     double offset = (row%2==0)?0:brickWidth/2;
-                    double brickX = col * (brickWidth+10) + 300 + offset;
-                    double brickY = row * (brickHeight+10) + 50;
+                    double brickX = applicationX - (col * (brickWidth + brickGap) + offset + brickWidth);
+                    double brickY = applicationY - (row * (brickHeight+1000) + 50);
                     Color color = Color.rgb(rand.nextInt(256),rand.nextInt(256),rand.nextInt(256));
                     Brick brick = new Brick(brickX, brickY, brickWidth, brickHeight, color);
                     bricks.add(brick);
